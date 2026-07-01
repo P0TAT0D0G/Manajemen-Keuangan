@@ -4,6 +4,128 @@
   gap: 24px;
 }
 
+.page-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+/* Filter bar */
+.filter-bar {
+  background: var(--surface-color);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-group label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.filter-group input,
+.filter-group select {
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--bg-color);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  transition: border-color 0.2s;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(135, 169, 34, 0.1);
+}
+
+.reset-btn {
+  background: none;
+  border: none;
+  color: var(--primary);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.reset-btn:hover {
+  text-decoration: underline;
+}
+
+/* Summary Cards */
+.summary-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.summary-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface-color);
+  padding: 20px;
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.summary-card-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.summary-card.income .summary-card-icon {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+}
+
+.summary-card.expense .summary-card-icon {
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger);
+}
+
+.summary-card.net .summary-card-icon {
+  background: rgba(17, 66, 50, 0.05);
+  color: var(--primary);
+}
+
+.summary-card-label {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.summary-card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.summary-card-value.positive { color: var(--success); }
+.summary-card-value.negative { color: var(--danger); }
+
+/* Report card */
 .report-card {
   background: var(--surface-color);
   padding: 24px;
@@ -12,6 +134,117 @@
 }
 
 .chart-container-large {
-  height: 400px;
+  height: 350px;
   width: 100%;
+}
+
+/* Transaction list in reports */
+.report-tx-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.report-tx-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-radius: 10px;
+  transition: background 0.2s;
+}
+
+.report-tx-item:hover {
+  background: var(--bg-color);
+}
+
+.report-tx-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.report-tx-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: rgba(17, 66, 50, 0.05);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.report-tx-icon.transfer {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--text-secondary);
+}
+
+.report-tx-info { min-width: 0; }
+
+.report-tx-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.report-tx-meta {
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.report-tx-amount {
+  font-weight: 700;
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+
+.report-tx-amount.in { color: var(--success); }
+.report-tx-amount.out { color: var(--text-primary); }
+.report-tx-amount.neutral { color: var(--text-secondary); }
+
+/* Shared */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.empty-chart {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 160px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  background: rgba(0, 0, 0, 0.02);
+  border-radius: 12px;
+  border: 1px dashed var(--border);
+}
+
+@media (max-width: 767px) {
+  .page-header-actions {
+    flex-wrap: wrap;
+  }
+  .filter-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .summary-cards {
+    grid-template-columns: 1fr;
+  }
+  .chart-container-large {
+    height: 260px;
+  }
 }

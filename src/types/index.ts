@@ -1,10 +1,12 @@
-export type TransactionType = 'In' | 'Out' | 'Transfer';
+export type TransactionType = 'In' | 'Out' | 'Transfer' | 'Adjustment';
+export type CategoryType = 'In' | 'Out';
 
 export interface Wallet {
   id: string;
   name: string;
   type: string;
-  balance: number;
+  openingBalance: number;
+  isArchived?: boolean;
 }
 
 export interface Category {

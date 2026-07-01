@@ -1,0 +1,48 @@
+.ui-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.ui-modal-panel {
+  background: var(--surface-color);
+  width: 100%;
+  border-radius: 20px;
+  box-shadow: var(--shadow-lg);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.ui-modal-panel:focus {
+  outline: none;
+}
+
+.ui-modal-panel.size-sm { max-width: 400px; }
+.ui-modal-panel.size-md { max-width: 500px; }
+.ui-modal-panel.size-lg { max-width: 640px; }
+
+.ui-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.ui-modal-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.ui-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+}

@@ -1,0 +1,57 @@
+.ui-currency-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ui-currency-group label {
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.ui-currency-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.ui-currency-symbol {
+  position: absolute;
+  left: 16px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 1.125rem;
+}
+
+.ui-currency-input {
+  width: 100%;
+  padding: 16px 16px 16px 48px !important;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--bg-color);
+  font-family: var(--font-body);
+  font-size: 1.25rem !important;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ui-currency-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(17, 66, 50, 0.1);
+}
+
+.ui-currency-input.has-error {
+  border-color: var(--danger);
+}
+
+.ui-currency-input.has-error:focus {
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.ui-currency-error {
+  color: var(--danger);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}

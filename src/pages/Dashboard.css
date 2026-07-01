@@ -4,7 +4,30 @@
   gap: 32px;
 }
 
-/* Balance Card (Premium green card) */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  margin: 4px 0 0 0;
+}
+
+.dashboard-add-btn {
+  text-decoration: none;
+}
+
+/* Balance Card */
 .balance-card {
   background: var(--primary);
   color: white;
@@ -92,7 +115,7 @@
 
 .stat-icon-wrapper.in {
   background: rgba(135, 169, 34, 0.2);
-  color: #a4ce27; /* Lighter chartreuse for contrast on dark green */
+  color: #a4ce27;
 }
 
 .stat-icon-wrapper.out {
@@ -138,24 +161,26 @@
 }
 
 /* Chart */
-.chart-container {
+.chart-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  height: 320px;
+  gap: 20px;
+}
+
+.chart-container {
+  width: 100%;
 }
 
 .chart-legend {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
-  justify-content: center;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .legend-item {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   font-size: 0.875rem;
   color: var(--text-secondary);
 }
@@ -164,6 +189,16 @@
   width: 12px;
   height: 12px;
   border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.legend-name {
+  flex: 1;
+}
+
+.legend-value {
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .empty-chart {
@@ -182,7 +217,7 @@
 .recent-tx-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .recent-tx-item {
@@ -202,6 +237,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  min-width: 0;
 }
 
 .recent-tx-icon {
@@ -225,26 +261,128 @@
   font-weight: 600;
   font-size: 1rem;
   margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .recent-tx-date {
   font-size: 0.875rem;
   color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .recent-tx-amount {
   font-weight: 700;
   font-size: 1.125rem;
+  flex-shrink: 0;
+  margin-left: 16px;
 }
 
-.recent-tx-amount.in {
-  color: var(--success);
+.recent-tx-amount.in { color: var(--success); }
+.recent-tx-amount.out { color: var(--text-primary); }
+.recent-tx-amount.neutral { color: var(--text-secondary); }
+
+/* Screen reader only */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }
 
-.recent-tx-amount.out {
-  color: var(--text-primary);
-}
-
-.recent-tx-amount.neutral {
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
   color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.empty-state-icon {
+  color: var(--border);
+  margin-bottom: 8px;
+}
+
+/* Buttons (shared) */
+.primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--primary);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.primary-btn:hover {
+  background: var(--primary-hover);
+  transform: translateY(-1px);
+}
+
+.secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-color);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.secondary-btn:hover {
+  background: var(--bg-color);
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.icon-btn:hover {
+  color: var(--text-primary);
+  background: var(--bg-color);
+}
+
+@media (max-width: 767px) {
+  .balance-amount {
+    font-size: 1.75rem;
+  }
+  .balance-card {
+    padding: 24px;
+  }
+  .dashboard-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
 }

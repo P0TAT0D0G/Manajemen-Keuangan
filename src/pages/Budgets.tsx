@@ -1,58 +1,100 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useData } from '../context/DataContext';
-import type { Budget } from '../types';
-import { Target, AlertTriangle, Plus, X, Pencil, Trash2 } from 'lucide-react';
+import { useToast } from '../components/ui/ToastContext';
+import { Plus, Pencil, Trash2, AlertTriangle, AlertCircle, PieChart } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 import { getIconComponent } from '../utils/icons';
+import { isSameMonth } from '../utils/date';
+import { validateBudget } from '../schemas/validation';
+import Modal from '../components/ui/Modal';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
+import EmptyState from '../components/ui/EmptyState';
+import CurrencyInput from '../components/ui/CurrencyInput';
+import type { Budget } from '../types';
 import './Budgets.css';
 
 export default function Budgets() {
-  const { budgets, transactions, categories, addBudget, updateBudget, deleteBudget } = useData();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { budgets, categories, transactions, addBudget, updateBudget, deleteBudget } = useData();
+  const toast = useToast();
 
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth() + 1);
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [categoryId, setCategoryId] = useState('');
   const [amount, setAmount] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const [budgetToDelete, setBudgetToDelete] = useState<Budget | null>(null);
 
-  const currentMonth = new Date().getMonth() + 1;
-  const currentYear = new Date().getFullYear();
-
-  const openModal = (b?: Budget) => {
-    if (b) {
-      setEditingId(b.id);
-      setCategoryId(b.categoryId);
-      setAmount(b.amount.toString());
+  const handlePrevMonth = () => {
+    if (currentMonth === 1) {
+      setCurrentMonth(12);
+      setCurrentYear(y => y - 1);
     } else {
-      setEditingId(null);
+      setCurrentMonth(m => m - 1);
+    }
+  };
+
+  const handleNextMonth = () => {
+    if (currentMonth === 12) {
+      setCurrentMonth(1);
+      setCurrentYear(y => y + 1);
+    } else {
+      setCurrentMonth(m => m + 1);
+    }
+  };
+
+  const expenseCategories = categories.filter(c => c.type === 'Out');
+  
+  const openForm = (budget?: Budget) => {
+    if (budget) {
+      setEditingBudget(budget);
+      setCategoryId(budget.categoryId);
+      setAmount(budget.amount.toString());
+    } else {
+      setEditingBudget(null);
       setCategoryId('');
       setAmount('');
     }
+    setErrors({});
     setIsModalOpen(true);
+  };
+
+  const closeForm = () => {
+    setIsModalOpen(false);
+    setEditingBudget(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!categoryId || !amount) return;
-
-    const budgetData = {
-      categoryId,
-      amount: Number(amount),
-      month: currentMonth,
-      year: currentYear
-    };
-
-    if (editingId) {
-      updateBudget(editingId, budgetData);
-    } else {
-      addBudget(budgetData);
+    
+    const result = validateBudget({ categoryId, amount: Number(amount) });
+    if (!result.valid) {
+      setErrors(result.errors);
+      return;
     }
-    setIsModalOpen(false);
+
+    if (editingBudget) {
+      updateBudget(editingBudget.id, { categoryId, amount: Number(amount), month: currentMonth, year: currentYear });
+      toast.success('Anggaran berhasil diperbarui');
+    } else {
+      const existing = budgets.find(b => b.categoryId === categoryId);
+      if (existing) {
+        setErrors({ categoryId: 'Kategori ini sudah memiliki anggaran.' });
+        return;
+      }
+      addBudget({ categoryId, amount: Number(amount), month: currentMonth, year: currentYear });
+      toast.success('Anggaran berhasil ditambahkan');
+    }
+    closeForm();
   };
 
-  const handleDelete = (id: string) => {
-    if (confirm("Hapus anggaran ini?")) {
-      deleteBudget(id);
-    }
+  const getSpentAmount = (catId: string) => {
+    return transactions
+      .filter(t => t.type === 'Out' && t.categoryId === catId && isSameMonth(t.date, currentMonth, currentYear))
+      .reduce((sum, t) => sum + t.amount, 0);
   };
 
   return (
@@ -60,130 +102,151 @@ export default function Budgets() {
       <div className="page-header">
         <div>
           <h2 className="page-title">Anggaran</h2>
-          <p className="page-subtitle">Bulan {new Date().toLocaleString('id-ID', { month: 'long', year: 'numeric' })}</p>
+          <p className="page-subtitle">Kontrol pengeluaran Anda</p>
         </div>
-        <button className="primary-btn" onClick={() => openModal()}>
-          <Plus size={20} /> Atur Anggaran
+        <button className="primary-btn" onClick={() => openForm()}>
+          <Plus size={18} /> Buat Anggaran
         </button>
       </div>
 
-      <div className="budgets-list">
-        {budgets.filter(b => b.month === currentMonth && b.year === currentYear).map(budget => {
-          const category = categories.find(c => c.id === budget.categoryId);
-          
-          // Fix: Check both month and year for spent calculation
-          const spent = transactions
-            .filter(t => {
-              const d = new Date(t.date);
-              return t.categoryId === budget.categoryId && (d.getMonth() + 1) === currentMonth && d.getFullYear() === currentYear;
-            })
-            .reduce((s, t) => s + t.amount, 0);
-          
-          const percentage = Math.min((spent / budget.amount) * 100, 100);
-          let progressClass = 'good';
-          if (percentage > 75) progressClass = 'warning';
-          if (percentage >= 100) progressClass = 'danger';
+      <div className="budget-controls" style={{ display: 'flex', justifyContent: 'center' }}>
+        <div className="month-selector">
+          <button className="secondary-btn icon-only" onClick={handlePrevMonth}>&lt;</button>
+          <span className="current-month">
+            {new Date(currentYear, currentMonth - 1).toLocaleString('id-ID', { month: 'long', year: 'numeric' })}
+          </span>
+          <button className="secondary-btn icon-only" onClick={handleNextMonth}>&gt;</button>
+        </div>
+      </div>
 
-          return (
-            <div key={budget.id} className="budget-card group">
-              <div className="budget-header">
-                <div className="budget-title-area">
-                  <div className="budget-icon">
-                    {getIconComponent(category?.icon || 'target', { size: 20 })}
+      <div className="budget-grid">
+        {budgets.length > 0 ? (
+          budgets.map(budget => {
+            const cat = categories.find(c => c.id === budget.categoryId);
+            const spent = getSpentAmount(budget.categoryId);
+            const remaining = budget.amount - spent;
+            const percentage = Math.min((spent / budget.amount) * 100, 100);
+            
+            let statusColor = 'var(--success)';
+            let statusIcon = null;
+            if (percentage >= 100) {
+              statusColor = 'var(--danger)';
+              statusIcon = <AlertTriangle size={16} />;
+            } else if (percentage >= 80) {
+              statusColor = 'var(--warning)';
+              statusIcon = <AlertCircle size={16} />;
+            }
+
+            return (
+              <div key={budget.id} className="budget-card group">
+                <div className="budget-header">
+                  <div className="budget-cat">
+                    <div className="budget-icon">
+                      {getIconComponent(cat?.icon || 'tag', { size: 20 })}
+                    </div>
+                    <div className="budget-cat-name">{cat?.name || 'Kategori Dihapus'}</div>
                   </div>
-                  <h3 className="budget-title">{category?.name}</h3>
-                </div>
-                
-                <div className="budget-header-actions">
-                  {percentage >= 100 && (
-                    <span className="budget-alert">
-                      <AlertTriangle size={16} /> Melebihi Batas
-                    </span>
-                  )}
                   <div className="budget-actions">
-                    <button className="icon-btn edit-btn" onClick={() => openModal(budget)}><Pencil size={18}/></button>
-                    <button className="icon-btn delete-btn" onClick={() => handleDelete(budget.id)}><Trash2 size={18}/></button>
+                    <button className="icon-btn" onClick={() => openForm(budget)} aria-label="Edit">
+                      <Pencil size={18} />
+                    </button>
+                    <button className="icon-btn text-danger" onClick={() => setBudgetToDelete(budget)} aria-label="Hapus">
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
-              </div>
-              
-              <div className="budget-amounts tabular-nums">
-                <span className="spent">{formatCurrency(spent)}</span>
-                <span className="total">/ {formatCurrency(budget.amount)}</span>
-              </div>
-              
-              <div className="progress-bar-bg">
-                <div 
-                  className={`progress-bar-fill ${progressClass}`} 
-                  style={{ width: `${percentage}%` }}
-                ></div>
-              </div>
-            </div>
-          );
-        })}
 
-        {budgets.length === 0 && (
-          <div className="empty-state">
-            <Target size={48} className="empty-state-icon" />
-            <p>Belum ada anggaran yang diatur.</p>
+                <div className="budget-amounts">
+                  <div>
+                    <div className="budget-label">Terpakai</div>
+                    <div className="budget-spent tabular-nums">{formatCurrency(spent)}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div className="budget-label">Dari Total</div>
+                    <div className="budget-total tabular-nums">{formatCurrency(budget.amount)}</div>
+                  </div>
+                </div>
+
+                <div className="progress-bar">
+                  <div 
+                    className="progress-fill" 
+                    style={{ width: `${percentage}%`, backgroundColor: statusColor }}
+                  ></div>
+                </div>
+
+                <div className="budget-footer" style={{ color: statusColor }}>
+                  {statusIcon}
+                  {percentage >= 100 
+                    ? `Melebihi anggaran ${formatCurrency(Math.abs(remaining))}`
+                    : `Sisa ${formatCurrency(remaining)}`
+                  }
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          <div style={{ gridColumn: '1 / -1' }}>
+            <EmptyState
+              icon={<PieChart />}
+              title="Belum ada anggaran"
+              description="Atur batas pengeluaran untuk setiap kategori agar keuangan Anda lebih terkendali."
+              actionLabel="Buat Anggaran Pertama"
+              onAction={() => openForm()}
+            />
           </div>
         )}
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal-content fade-in">
-            <div className="modal-header">
-              <h3>{editingId ? 'Edit Anggaran' : 'Atur Anggaran'}</h3>
-              <button className="icon-btn" onClick={() => setIsModalOpen(false)}>
-                <X size={24} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="tx-form">
-              <div className="form-group">
-                <label htmlFor="category">Kategori</label>
-                <select 
-                  id="category" 
-                  value={categoryId} 
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  required
-                >
-                  <option value="">Pilih Kategori</option>
-                  {categories.filter(c => c.type === 'Out').map(c => (
-                    <option key={c.id} value={c.id} disabled={!editingId && budgets.some(b => b.categoryId === c.id && b.month === currentMonth && b.year === currentYear)}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="amount">Batas Anggaran</label>
-                <div className="amount-input-wrapper">
-                  <span className="currency-symbol">Rp</span>
-                  <input
-                    id="amount"
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0"
-                    required
-                    min="1"
-                    className="amount-input tabular-nums"
-                  />
-                </div>
-              </div>
-
-              <div className="modal-actions">
-                <button type="button" className="secondary-btn" onClick={() => setIsModalOpen(false)}>Batal</button>
-                <button type="submit" className="primary-btn">Simpan</button>
-              </div>
-            </form>
+      <Modal isOpen={isModalOpen} onClose={closeForm} title={editingBudget ? 'Edit Anggaran' : 'Buat Anggaran'}>
+        <form onSubmit={handleSubmit} className="tx-form">
+          <div className="form-group">
+            <label htmlFor="budget-category">Kategori Pengeluaran</label>
+            <select 
+              id="budget-category" 
+              value={categoryId} 
+              onChange={e => setCategoryId(e.target.value)}
+              disabled={!!editingBudget}
+            >
+              <option value="">Pilih Kategori...</option>
+              {expenseCategories.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            {errors.categoryId && <span className="field-error">{errors.categoryId}</span>}
           </div>
-        </div>
-      )}
+
+          <CurrencyInput
+            id="budget-amount"
+            label="Batas Anggaran per Bulan"
+            value={amount}
+            onChange={setAmount}
+            error={errors.amount}
+            autoFocus
+            required
+          />
+
+          <div className="modal-form-actions">
+            <button type="button" className="secondary-btn" onClick={closeForm}>Batal</button>
+            <button type="submit" className="primary-btn">Simpan</button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        isOpen={budgetToDelete !== null}
+        onClose={() => setBudgetToDelete(null)}
+        onConfirm={() => {
+          if (budgetToDelete) {
+            deleteBudget(budgetToDelete.id);
+            toast.success('Anggaran berhasil dihapus');
+            setBudgetToDelete(null);
+          }
+        }}
+        title="Hapus Anggaran?"
+        message="Batas anggaran untuk kategori ini akan dihapus. Riwayat transaksi tidak akan terpengaruh."
+        variant="danger"
+        confirmLabel="Hapus"
+      />
     </div>
   );
 }

@@ -80,9 +80,9 @@ export default function Budgets() {
       updateBudget(editingBudget.id, { categoryId, amount: Number(amount), month: currentMonth, year: currentYear });
       toast.success('Anggaran berhasil diperbarui');
     } else {
-      const existing = budgets.find(b => b.categoryId === categoryId);
+      const existing = budgets.find(b => b.categoryId === categoryId && b.month === currentMonth && b.year === currentYear);
       if (existing) {
-        setErrors({ categoryId: 'Kategori ini sudah memiliki anggaran.' });
+        setErrors({ categoryId: 'Kategori ini sudah memiliki anggaran pada bulan ini.' });
         return;
       }
       addBudget({ categoryId, amount: Number(amount), month: currentMonth, year: currentYear });
@@ -96,6 +96,8 @@ export default function Budgets() {
       .filter(t => t.type === 'Out' && t.categoryId === catId && isSameMonth(t.date, currentMonth, currentYear))
       .reduce((sum, t) => sum + t.amount, 0);
   };
+
+  const filteredBudgets = budgets.filter(b => b.month === currentMonth && b.year === currentYear);
 
   return (
     <div className="budgets-container fade-in">
@@ -120,8 +122,8 @@ export default function Budgets() {
       </div>
 
       <div className="budget-grid">
-        {budgets.length > 0 ? (
-          budgets.map(budget => {
+        {filteredBudgets.length > 0 ? (
+          filteredBudgets.map(budget => {
             const cat = categories.find(c => c.id === budget.categoryId);
             const spent = getSpentAmount(budget.categoryId);
             const remaining = budget.amount - spent;

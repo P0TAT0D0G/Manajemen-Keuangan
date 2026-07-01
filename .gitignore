@@ -37,3 +37,9 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Agent skills and project documentation
+.agents/skills/
+skills-lock.json
+PRD.md
+
+

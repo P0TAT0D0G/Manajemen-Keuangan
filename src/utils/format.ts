@@ -13,3 +13,8 @@ export const generateId = (): string => {
   }
   return Math.random().toString(36).substring(2, 11);
 };
+
+export const getWalletLabel = (wallet?: { name: string; isArchived?: boolean }): string => {
+  if (!wallet) return 'Dompet tidak ditemukan';
+  return wallet.isArchived ? `${wallet.name} (Diarsipkan)` : wallet.name;
+};

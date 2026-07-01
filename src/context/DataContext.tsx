@@ -1,34 +1,20 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Wallet, Category, Transaction, Budget } from '../types';
-import { generateId } from '../utils/format';
 import { computeWalletBalance, calculateAdjustment } from '../services/balance';
+import { repository } from '../services/localStorage.repository';
+import { Loader2 } from 'lucide-react'; // We can use Lucide for loading
 
 // ---------------------------------------------------------------------------
-// Initial seed data
+// Seed Data
 // ---------------------------------------------------------------------------
-
-const initialWallets: Wallet[] = [
-  { id: '1', name: 'Dompet Tunai', type: 'Cash', openingBalance: 1500000 },
-  { id: '2', name: 'Rekening BCA', type: 'Bank', openingBalance: 5000000 },
-];
 
 const initialCategories: Category[] = [
-  { id: '1', name: 'Gaji', type: 'In', icon: 'briefcase' },
-  { id: '2', name: 'Freelance', type: 'In', icon: 'monitor' },
-  { id: '3', name: 'Makan & Minum', type: 'Out', icon: 'coffee' },
-  { id: '4', name: 'Transportasi', type: 'Out', icon: 'bus' },
-  { id: '5', name: 'Hiburan', type: 'Out', icon: 'film' },
-  { id: '6', name: 'Lain-lain (In)', type: 'In', icon: 'help-circle' },
-  { id: '7', name: 'Lain-lain (Out)', type: 'Out', icon: 'help-circle' },
-];
-
-const initialTransactions: Transaction[] = [
-  { id: '1', walletId: '2', categoryId: '1', type: 'In', amount: 5000000, date: new Date().toISOString(), notes: 'Gaji Bulan Ini' },
-  { id: '2', walletId: '1', categoryId: '3', type: 'Out', amount: 50000, date: new Date().toISOString(), notes: 'Makan Siang' },
-];
-
-const initialBudgets: Budget[] = [
-  { id: '1', categoryId: '3', amount: 2000000, month: new Date().getMonth() + 1, year: new Date().getFullYear() },
+  { id: '1', name: 'Makanan & Minuman', type: 'Out', icon: 'coffee' },
+  { id: '2', name: 'Transportasi', type: 'Out', icon: 'bus' },
+  { id: '3', name: 'Tagihan', type: 'Out', icon: 'file-text' },
+  { id: '4', name: 'Hiburan', type: 'Out', icon: 'film' },
+  { id: '5', name: 'Gaji', type: 'In', icon: 'briefcase' },
+  { id: '6', name: 'Lain-lain', type: 'Out', icon: 'help-circle' },
 ];
 
 // ---------------------------------------------------------------------------
@@ -41,66 +27,76 @@ interface DataContextType {
   transactions: Transaction[];
   budgets: Budget[];
 
+  isLoading: boolean;
+
   // Computed balance
   getWalletBalance: (walletId: string) => number;
 
   // Transactions
-  addTransaction: (tx: Omit<Transaction, 'id'>) => void;
-  updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
+  addTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void>;
+  updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
 
   // Wallets
-  addWallet: (wallet: Omit<Wallet, 'id'>) => void;
-  updateWallet: (id: string, wallet: Omit<Wallet, 'id'>) => void;
-  archiveWallet: (id: string) => void;
-  restoreWallet: (id: string) => void;
-  adjustWalletBalance: (walletId: string, desiredBalance: number) => void;
+  addWallet: (wallet: Omit<Wallet, 'id'>) => Promise<void>;
+  updateWallet: (id: string, wallet: Omit<Wallet, 'id'>) => Promise<void>;
+  archiveWallet: (id: string) => Promise<void>;
+  restoreWallet: (id: string) => Promise<void>;
+  adjustWalletBalance: (walletId: string, desiredBalance: number) => Promise<void>;
 
   // Categories
-  addCategory: (cat: Omit<Category, 'id'>) => void;
-  updateCategory: (id: string, cat: Omit<Category, 'id'>) => void;
-  deleteCategory: (id: string) => void;
+  addCategory: (cat: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, cat: Omit<Category, 'id'>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
 
   // Budgets
-  addBudget: (budget: Omit<Budget, 'id'>) => void;
-  updateBudget: (id: string, budget: Omit<Budget, 'id'>) => void;
-  deleteBudget: (id: string) => void;
+  addBudget: (budget: Omit<Budget, 'id'>) => Promise<void>;
+  updateBudget: (id: string, budget: Omit<Budget, 'id'>) => Promise<void>;
+  deleteBudget: (id: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
-
-import { repository } from '../services/localStorage.repository';
 
 // ---------------------------------------------------------------------------
 // Provider
 // ---------------------------------------------------------------------------
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [wallets, setWallets] = useState<Wallet[]>(() => {
-    const saved = repository.getWallets();
-    return saved.length ? saved : initialWallets;
-  });
+  const [wallets, setWallets] = useState<Wallet[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = repository.getCategories();
-    return saved.length ? saved : initialCategories;
-  });
+  useEffect(() => {
+    const initData = async () => {
+      try {
+        setIsLoading(true);
+        const [w, t, b, c] = await Promise.all([
+          repository.getWallets(),
+          repository.getTransactions(),
+          repository.getBudgets(),
+          repository.getCategories()
+        ]);
 
-  const [transactions, setTransactions] = useState<Transaction[]>(() => {
-    const saved = repository.getTransactions();
-    return saved.length ? saved : initialTransactions;
-  });
+        if (c.length === 0) {
+          await repository.saveCategories(initialCategories);
+          setCategories(initialCategories);
+        } else {
+          setCategories(c);
+        }
 
-  const [budgets, setBudgets] = useState<Budget[]>(() => {
-    const saved = repository.getBudgets();
-    return saved.length ? saved : initialBudgets;
-  });
-
-  // Persist to repository
-  useEffect(() => { repository.saveWallets(wallets); }, [wallets]);
-  useEffect(() => { repository.saveCategories(categories); }, [categories]);
-  useEffect(() => { repository.saveTransactions(transactions); }, [transactions]);
-  useEffect(() => { repository.saveBudgets(budgets); }, [budgets]);
+        setWallets(w);
+        setTransactions(t);
+        setBudgets(b);
+      } catch (error) {
+        console.error('Failed to init data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    initData();
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Computed balance — single source of truth
@@ -119,16 +115,18 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Transactions
   // ---------------------------------------------------------------------------
 
-  const addTransaction = (tx: Omit<Transaction, 'id'>) => {
-    const newTx: Transaction = { ...tx, id: generateId() };
+  const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
+    const newTx = await repository.createTransaction(tx);
     setTransactions(prev => [newTx, ...prev]);
   };
 
-  const updateTransaction = (id: string, newTxData: Omit<Transaction, 'id'>) => {
-    setTransactions(prev => prev.map(t => (t.id === id ? { ...t, ...newTxData } : t)));
+  const updateTransaction = async (id: string, newTxData: Omit<Transaction, 'id'>) => {
+    const updated = await repository.updateTransaction(id, newTxData);
+    setTransactions(prev => prev.map(t => (t.id === id ? updated : t)));
   };
 
-  const deleteTransaction = (id: string) => {
+  const deleteTransaction = async (id: string) => {
+    await repository.deleteTransaction(id);
     setTransactions(prev => prev.filter(t => t.id !== id));
   };
 
@@ -136,74 +134,96 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Wallets
   // ---------------------------------------------------------------------------
 
-  const addWallet = (wallet: Omit<Wallet, 'id'>) => {
-    setWallets(prev => [...prev, { ...wallet, id: generateId() }]);
+  const addWallet = async (wallet: Omit<Wallet, 'id'>) => {
+    const newWallet = await repository.createWallet(wallet);
+    setWallets(prev => [...prev, newWallet]);
   };
 
-  const updateWallet = (id: string, wallet: Omit<Wallet, 'id'>) => {
-    setWallets(prev => prev.map(w => (w.id === id ? { ...w, ...wallet } : w)));
+  const updateWallet = async (id: string, wallet: Omit<Wallet, 'id'>) => {
+    const updated = await repository.updateWallet(id, wallet);
+    setWallets(prev => prev.map(w => (w.id === id ? updated : w)));
   };
 
-  const archiveWallet = (id: string) => {
-    setWallets(prev => prev.map(w => (w.id === id ? { ...w, isArchived: true } : w)));
+  const archiveWallet = async (id: string) => {
+    const archived = await repository.archiveWallet(id);
+    setWallets(prev => prev.map(w => (w.id === id ? archived : w)));
   };
 
-  const restoreWallet = (id: string) => {
-    setWallets(prev => prev.map(w => (w.id === id ? { ...w, isArchived: false } : w)));
+  const restoreWallet = async (id: string) => {
+    const restored = await repository.restoreWallet(id);
+    setWallets(prev => prev.map(w => (w.id === id ? restored : w)));
   };
 
-  const adjustWalletBalance = (walletId: string, desiredBalance: number) => {
+  const adjustWalletBalance = async (walletId: string, desiredBalance: number) => {
     const wallet = wallets.find(w => w.id === walletId);
     if (!wallet) return;
 
     const adjustment = calculateAdjustment(wallet, transactions, desiredBalance);
     if (adjustment === 0) return;
 
-    const adjustmentTx: Transaction = {
-      id: generateId(),
+    const newTx = await repository.createTransaction({
       walletId,
       categoryId: 'adjustment',
       type: 'Adjustment',
-      amount: adjustment, // signed: positive adds, negative subtracts
+      amount: adjustment,
       date: new Date().toISOString(),
       notes: 'Penyesuaian saldo manual',
-    };
+    });
 
-    setTransactions(prev => [adjustmentTx, ...prev]);
+    setTransactions(prev => [newTx, ...prev]);
   };
 
   // ---------------------------------------------------------------------------
   // Categories
   // ---------------------------------------------------------------------------
 
-  const addCategory = (cat: Omit<Category, 'id'>) => {
-    setCategories(prev => [...prev, { ...cat, id: generateId() }]);
+  const addCategory = async (cat: Omit<Category, 'id'>) => {
+    const newCat = await repository.createCategory(cat);
+    setCategories(prev => [...prev, newCat]);
   };
 
-  const updateCategory = (id: string, cat: Omit<Category, 'id'>) => {
-    setCategories(prev => prev.map(c => (c.id === id ? { ...c, ...cat } : c)));
+  const updateCategory = async (id: string, cat: Omit<Category, 'id'>) => {
+    const updated = await repository.updateCategory(id, cat);
+    setCategories(prev => prev.map(c => (c.id === id ? updated : c)));
   };
 
-  const deleteCategory = (id: string) => {
+  const deleteCategory = async (id: string) => {
     const catToDelete = categories.find(c => c.id === id);
     if (!catToDelete) return;
 
     const hasTxs = transactions.some(t => t.categoryId === id);
     if (hasTxs) {
-      // Find or create a fallback category
       const fallbackName = `Lain-lain (${catToDelete.type})`;
       let fallback = categories.find(c => c.name === fallbackName && c.type === catToDelete.type);
 
       let newFallbackId = '';
       if (!fallback) {
-        newFallbackId = generateId();
-        const newFallback: Category = { id: newFallbackId, name: fallbackName, type: catToDelete.type, icon: 'help-circle' };
+        const newFallback = await repository.createCategory({
+          name: fallbackName,
+          type: catToDelete.type,
+          icon: 'help-circle'
+        });
         setCategories(prev => [...prev, newFallback]);
+        newFallbackId = newFallback.id;
       } else {
         newFallbackId = fallback.id;
       }
 
+      // Update all transactions that used this category
+      const txsToUpdate = transactions.filter(t => t.categoryId === id);
+      for (const t of txsToUpdate) {
+        await repository.updateTransaction(t.id, { categoryId: newFallbackId });
+      }
+      
       setTransactions(prev => prev.map(t => (t.categoryId === id ? { ...t, categoryId: newFallbackId } : t)));
+    }
+
+    await repository.deleteCategory(id);
+    
+    // Also delete associated budgets
+    const budgetsToDelete = budgets.filter(b => b.categoryId === id);
+    for (const b of budgetsToDelete) {
+      await repository.deleteBudget(b.id);
     }
 
     setCategories(prev => prev.filter(c => c.id !== id));
@@ -214,21 +234,32 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Budgets
   // ---------------------------------------------------------------------------
 
-  const addBudget = (budget: Omit<Budget, 'id'>) => {
-    setBudgets(prev => [...prev, { ...budget, id: generateId() }]);
+  const addBudget = async (budget: Omit<Budget, 'id'>) => {
+    const newBudget = await repository.createBudget(budget);
+    setBudgets(prev => [...prev, newBudget]);
   };
 
-  const updateBudget = (id: string, budget: Omit<Budget, 'id'>) => {
-    setBudgets(prev => prev.map(b => (b.id === id ? { ...b, ...budget } : b)));
+  const updateBudget = async (id: string, budget: Omit<Budget, 'id'>) => {
+    const updated = await repository.updateBudget(id, budget);
+    setBudgets(prev => prev.map(b => (b.id === id ? updated : b)));
   };
 
-  const deleteBudget = (id: string) => {
+  const deleteBudget = async (id: string) => {
+    await repository.deleteBudget(id);
     setBudgets(prev => prev.filter(b => b.id !== id));
   };
 
   // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
+  
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', height: '100vh', width: '100vw', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-color)' }}>
+        <Loader2 className="spinner" size={48} color="var(--primary)" />
+      </div>
+    );
+  }
 
   return (
     <DataContext.Provider
@@ -237,6 +268,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         categories,
         transactions,
         budgets,
+        isLoading,
         getWalletBalance,
         addTransaction,
         updateTransaction,
@@ -263,6 +295,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 // Hook
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line react/only-export-components
 export const useData = () => {
   const context = useContext(DataContext);
   if (context === undefined) {

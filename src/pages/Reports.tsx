@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import type { ValueType } from 'recharts/types/component/DefaultTooltipContent';
 import { Download, Filter, TrendingUp, TrendingDown, Activity } from 'lucide-react';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, getWalletLabel } from '../utils/format';
 import { isInDateRange, getMonthStart, getToday } from '../utils/date';
 import { getIconComponent } from '../utils/icons';
 import './Reports.css';
@@ -19,13 +19,12 @@ export default function Reports() {
   const [filterType, setFilterType] = useState('');
   const [showFilters, setShowFilters] = useState(false);
 
-  const activeWallets = wallets.filter(w => !w.isArchived);
 
   // Filtered transactions
   const filteredTx = useMemo(() => {
     return transactions.filter(t => {
       if (!isInDateRange(t.date, startDate, endDate)) return false;
-      if (filterWalletId && t.walletId !== filterWalletId) return false;
+      if (filterWalletId && t.walletId !== filterWalletId && t.toWalletId !== filterWalletId) return false;
       if (filterCategoryId && t.categoryId !== filterCategoryId) return false;
       if (filterType && t.type !== filterType) return false;
       return true;
@@ -83,8 +82,8 @@ export default function Reports() {
         new Date(tx.date).toLocaleDateString('id-ID'),
         tx.type,
         tx.amount,
-        `"${wallet?.name || ''}"`,
-        `"${toWallet?.name || ''}"`,
+        `"${getWalletLabel(wallet)}"`,
+        `"${getWalletLabel(toWallet)}"`,
         `"${cat?.name || ''}"`,
         `"${(tx.notes || '').replace(/"/g, '""')}"`
       ].join(',');
@@ -154,8 +153,8 @@ export default function Reports() {
               <label htmlFor="filterWallet">Dompet</label>
               <select id="filterWallet" value={filterWalletId} onChange={e => setFilterWalletId(e.target.value)}>
                 <option value="">Semua Dompet</option>
-                {activeWallets.map(w => (
-                  <option key={w.id} value={w.id}>{w.name}</option>
+                {wallets.map(w => (
+                  <option key={w.id} value={w.id}>{getWalletLabel(w)}</option>
                 ))}
               </select>
             </div>
@@ -263,7 +262,7 @@ export default function Reports() {
                       <div className="report-tx-name">{tx.notes || cat?.name || 'Transfer'}</div>
                       <div className="report-tx-meta">
                         {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {wallet && ` · ${wallet.name}`}
+                        {wallet && ` · ${getWalletLabel(wallet)}`}
                       </div>
                     </div>
                   </div>

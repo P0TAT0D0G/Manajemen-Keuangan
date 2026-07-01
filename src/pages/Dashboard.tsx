@@ -3,7 +3,7 @@ import { useData } from '../context/DataContext';
 import { Eye, EyeOff, TrendingUp, TrendingDown, ArrowRightLeft, Plus } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import type { ValueType } from 'recharts/types/component/DefaultTooltipContent';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, getWalletLabel } from '../utils/format';
 import { getIconComponent } from '../utils/icons';
 import { isSameMonth } from '../utils/date';
 import Modal from '../components/ui/Modal';
@@ -170,7 +170,7 @@ export default function Dashboard() {
                       <div className="recent-tx-name">{label}</div>
                       <div className="recent-tx-date">
                         {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
-                        {isTransfer && wallet && toWallet && ` · ${wallet.name} → ${toWallet.name}`}
+                        {isTransfer && wallet && toWallet && ` · ${getWalletLabel(wallet)} → ${getWalletLabel(toWallet)}`}
                       </div>
                     </div>
                   </div>

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useData } from '../context/DataContext';
 import { useToast } from '../components/ui/ToastContext';
 import { Plus, Pencil, Trash2, ArrowRightLeft, FileText } from 'lucide-react';
-import { formatCurrency } from '../utils/format';
+import { formatCurrency, getWalletLabel } from '../utils/format';
 import { getIconComponent } from '../utils/icons';
 import { isSameMonth } from '../utils/date';
 import Modal from '../components/ui/Modal';
@@ -83,9 +83,9 @@ export default function Transactions() {
 
     let meta = `${new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}`;
     if (isTransfer && wallet && toWallet) {
-      meta += ` · ${wallet.name} → ${toWallet.name}`;
+      meta += ` · ${getWalletLabel(wallet)} → ${getWalletLabel(toWallet)}`;
     } else if (wallet) {
-      meta += ` · ${wallet.name}`;
+      meta += ` · ${getWalletLabel(wallet)}`;
     }
 
     return (

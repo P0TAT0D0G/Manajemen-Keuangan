@@ -181,3 +181,44 @@
     padding: 32px 40px;
   }
 }
+
+/* Toast System */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.toast {
+  background: var(--surface-color);
+  border-left: 4px solid var(--warning);
+  color: var(--text-primary);
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 400px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.toast-icon {
+  color: var(--warning);
+}
+
+@media (max-width: 768px) {
+  .toast-container {
+    top: 72px; /* below mobile header */
+    left: 16px;
+    right: 16px;
+  }
+  .toast {
+    max-width: none;
+  }
+}

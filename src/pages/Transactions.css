@@ -247,3 +247,52 @@ input:focus, select:focus {
   gap: 12px;
   margin-top: 12px;
 }
+
+/* Additional styles for tx card interactions */
+.tx-card-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.tx-card-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.tx-card-amount.neutral {
+  color: var(--text-secondary);
+}
+
+.tx-card-icon.transfer {
+  background: rgba(107, 114, 128, 0.1);
+  color: var(--text-secondary);
+}
+
+.tx-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.tx-card:hover .tx-actions,
+.tx-card:focus-within .tx-actions {
+  opacity: 1;
+}
+
+.edit-btn:hover { color: var(--primary); }
+.delete-btn:hover { color: var(--danger); }
+
+@media (max-width: 768px) {
+  .tx-actions {
+    opacity: 1; /* Always show actions on mobile */
+  }
+  .tx-card-right {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+}

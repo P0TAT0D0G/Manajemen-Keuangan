@@ -2,14 +2,11 @@ import React from 'react';
 import { useData } from '../context/DataContext';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from 'recharts';
 import { Download } from 'lucide-react';
+import { formatCurrency } from '../utils/format';
 import './Reports.css';
 
 export default function Reports() {
-  const { transactions } = useData();
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(val);
-  };
+  const { transactions, categories, wallets } = useData();
 
   // Generate last 6 months data
   const data = [];
@@ -33,7 +30,41 @@ export default function Reports() {
   }
 
   const handleExport = () => {
-    alert("Exporting CSV... (Mock)");
+    if (transactions.length === 0) {
+      alert("Belum ada data transaksi untuk diexport.");
+      return;
+    }
+
+    const headers = ['ID', 'Tanggal', 'Jenis', 'Nominal', 'Dompet', 'Ke Dompet', 'Kategori', 'Catatan'];
+    
+    const rows = transactions.map(tx => {
+      const cat = categories.find(c => c.id === tx.categoryId);
+      const wallet = wallets.find(w => w.id === tx.walletId);
+      const toWallet = wallets.find(w => w.id === tx.toWalletId);
+      
+      return [
+        tx.id,
+        new Date(tx.date).toLocaleDateString('id-ID'),
+        tx.type,
+        tx.amount,
+        `"${wallet?.name || ''}"`,
+        `"${toWallet?.name || ''}"`,
+        `"${cat?.name || ''}"`,
+        `"${tx.notes.replace(/"/g, '""') || ''}"` // Escape quotes in notes
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `laporan_keuangan_${new Date().getTime()}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -44,7 +75,7 @@ export default function Reports() {
           <p className="page-subtitle">Arus kas 6 bulan terakhir</p>
         </div>
         <button className="secondary-btn" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <Download size={18} /> Export
+          <Download size={18} /> Export CSV
         </button>
       </div>
 

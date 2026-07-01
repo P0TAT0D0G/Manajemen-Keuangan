@@ -91,3 +91,28 @@
 .progress-bar-fill.good { background-color: var(--success); }
 .progress-bar-fill.warning { background-color: var(--warning); }
 .progress-bar-fill.danger { background-color: var(--danger); }
+
+/* Actions */
+.budget-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.budget-actions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.budget-card:hover .budget-actions,
+.budget-card:focus-within .budget-actions {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .budget-actions {
+    opacity: 1;
+  }
+}

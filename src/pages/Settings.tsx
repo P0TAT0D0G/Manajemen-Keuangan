@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useData } from '../context/DataContext';
-import { Settings as SettingsIcon, Plus, Pencil, Archive, ArchiveRestore, Wallet, Tag } from 'lucide-react';
+import { Settings as SettingsIcon, Plus, Pencil, Archive, ArchiveRestore, Wallet, Tag, Database, Download, Upload } from 'lucide-react';
 import { formatCurrency } from '../utils/format';
 import { getIconComponent, availableIcons } from '../utils/icons';
 import type { CategoryType } from '../types';
@@ -16,11 +16,13 @@ export default function Settings() {
     wallets, categories,
     addWallet, updateWallet, archiveWallet, restoreWallet, adjustWalletBalance,
     addCategory, updateCategory, deleteCategory,
-    getWalletBalance
+    getWalletBalance,
+    exportData, importData
   } = useData();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<'wallets' | 'categories'>('wallets');
+  const [activeTab, setActiveTab] = useState<'wallets' | 'categories' | 'data'>('wallets');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Wallet Modal State
   const [isWalletModalOpen, setWalletModalOpen] = useState(false);
@@ -161,6 +163,45 @@ export default function Settings() {
     setConfirmAction(null);
   };
 
+  const handleExport = async () => {
+    try {
+      const dataStr = await exportData();
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `backup_keuangan_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Backup berhasil diekspor');
+    } catch {
+      toast.error('Gagal mengekspor data');
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      try {
+        const content = event.target?.result as string;
+        const replace = window.confirm('Apakah Anda ingin MENIMPA SELURUH DATA yang ada dengan data dari file backup? \n\nKlik OK untuk Menimpa (Replace), atau Cancel untuk Menggabungkan (Merge).');
+        const mode = replace ? 'replace' : 'merge';
+        
+        await importData(content, mode);
+        toast.success('Backup berhasil diimpor');
+      } catch {
+        toast.error('Gagal mengimpor data: format tidak valid');
+      }
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div className="settings-container fade-in">
       <div className="page-header">
@@ -187,6 +228,14 @@ export default function Settings() {
           onClick={() => setActiveTab('categories')}
         >
           <Tag size={18} /> Kategori
+        </button>
+        <button 
+          role="tab"
+          aria-selected={activeTab === 'data'}
+          className={`tab-btn ${activeTab === 'data' ? 'active' : ''}`}
+          onClick={() => setActiveTab('data')}
+        >
+          <Database size={18} /> Data
         </button>
       </div>
 
@@ -283,6 +332,47 @@ export default function Settings() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'data' && (
+          <div className="fade-in">
+            <div className="section-header">
+              <h3 className="section-title">Manajemen Data</h3>
+            </div>
+            
+            <div className="list-grid">
+              <div className="list-card group" style={{ cursor: 'pointer' }} onClick={handleExport}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="cat-icon-preview">
+                    <Download size={20} />
+                  </div>
+                  <div className="list-card-info">
+                    <div className="list-card-title">Export Backup (JSON)</div>
+                    <div className="list-card-subtitle">Simpan seluruh data dompet dan transaksi ke file JSON aman.</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="list-card group" style={{ cursor: 'pointer' }} onClick={() => fileInputRef.current?.click()}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="cat-icon-preview">
+                    <Upload size={20} />
+                  </div>
+                  <div className="list-card-info">
+                    <div className="list-card-title">Import Backup</div>
+                    <div className="list-card-subtitle">Pulihkan data dari file JSON yang pernah Anda simpan.</div>
+                  </div>
+                </div>
+                <input 
+                  type="file" 
+                  accept=".json" 
+                  ref={fileInputRef} 
+                  style={{ display: 'none' }} 
+                  onChange={handleImport}
+                />
+              </div>
             </div>
           </div>
         )}

@@ -165,6 +165,12 @@ export class LocalStorageRepository implements FinanceRepository {
     localStorage.removeItem(STORAGE_KEYS.BUDGETS);
     localStorage.removeItem('onboarding_complete');
   }
+
+  async exportData(): Promise<string> {
+    return "";
+  }
+
+  async importData(_jsonData: string, _mode: 'merge' | 'replace'): Promise<void> {}
 }
 
 export const repository = new LocalStorageRepository();

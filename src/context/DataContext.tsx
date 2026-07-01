@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { Wallet, Category, Transaction, Budget } from '../types';
 import { computeWalletBalance, calculateAdjustment } from '../services/balance';
-import { repository } from '../services/localStorage.repository';
+import { repository } from '../services/indexedDB.repository';
 import { Loader2 } from 'lucide-react'; // We can use Lucide for loading
 
 // ---------------------------------------------------------------------------
@@ -53,6 +53,10 @@ interface DataContextType {
   addBudget: (budget: Omit<Budget, 'id'>) => Promise<void>;
   updateBudget: (id: string, budget: Omit<Budget, 'id'>) => Promise<void>;
   deleteBudget: (id: string) => Promise<void>;
+
+  // Backup & Restore
+  exportData: () => Promise<string>;
+  importData: (jsonData: string, mode: 'merge' | 'replace') => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -68,35 +72,36 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const initData = async () => {
-      try {
-        setIsLoading(true);
-        const [w, t, b, c] = await Promise.all([
-          repository.getWallets(),
-          repository.getTransactions(),
-          repository.getBudgets(),
-          repository.getCategories()
-        ]);
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const [w, t, b, c] = await Promise.all([
+        repository.getWallets(),
+        repository.getTransactions(),
+        repository.getBudgets(),
+        repository.getCategories()
+      ]);
 
-        if (c.length === 0) {
-          await repository.saveCategories(initialCategories);
-          setCategories(initialCategories);
-        } else {
-          setCategories(c);
-        }
-
-        setWallets(w);
-        setTransactions(t);
-        setBudgets(b);
-      } catch (error) {
-        console.error('Failed to init data:', error);
-      } finally {
-        setIsLoading(false);
+      if (c.length === 0) {
+        await repository.saveCategories(initialCategories);
+        setCategories(initialCategories);
+      } else {
+        setCategories(c);
       }
-    };
-    initData();
+
+      setWallets(w);
+      setTransactions(t);
+      setBudgets(b);
+    } catch (error) {
+      console.error('Failed to init data:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   // ---------------------------------------------------------------------------
   // Computed balance — single source of truth
@@ -250,6 +255,19 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // ---------------------------------------------------------------------------
+  // Backup & Restore
+  // ---------------------------------------------------------------------------
+
+  const exportData = useCallback(async () => {
+    return await repository.exportData();
+  }, []);
+
+  const importData = useCallback(async (jsonData: string, mode: 'merge' | 'replace') => {
+    await repository.importData(jsonData, mode);
+    await fetchData(); // Reload all state from DB after import
+  }, [fetchData]);
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
   
@@ -284,6 +302,8 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addBudget,
         updateBudget,
         deleteBudget,
+        exportData,
+        importData
       }}
     >
       {children}

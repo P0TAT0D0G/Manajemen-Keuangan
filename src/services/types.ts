@@ -32,4 +32,6 @@ export interface FinanceRepository {
   
   // Utility
   clearAll(): Promise<void>;
+  exportData(): Promise<string>;
+  importData(jsonData: string, mode: 'merge' | 'replace'): Promise<void>;
 }
